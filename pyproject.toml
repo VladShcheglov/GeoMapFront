@@ -1,0 +1,14 @@
+[project]
+name = "hakaton"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[all]>=0.118.0",
+    "ipykernel>=6.30.1",
+    "numpy>=2.3.3",
+    "pillow>=11.3.0",
+    "sentinelhub>=3.11.2",
+    "uvicorn>=0.37.0",
+]

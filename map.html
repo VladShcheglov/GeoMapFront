@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Карта Sentinel</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        #map { width: 100%; height: 100%; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: white;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 1000; /* Чтобы было поверх карты */
+            font-family: sans-serif;
+}
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label>
+            <input type="radio" name="layer_select" value="true_color" checked> True Color
+        </label>
+        <label>
+            <input type="radio" name="layer_select" value="ndvi"> NDVI
+        </label>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <script>
+        // --- НАСТРОЙКИ ---
+const mapCenter = [41.01, 28.97];
+const mapZoom = 12;
+
+// --- ИНИЦИАЛИЗАЦИЯ КАРТЫ ---
+const map = L.map('map').setView(mapCenter, mapZoom);
+
+// --- СЛОИ ---
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+// Слой для отображения полученного снимка
+let imageOverlay = null;
+
+// --- ИНСТРУМЕНТЫ РИСОВАНИЯ ---
+const drawControl = new L.Control.Draw({
+    edit: false, // Отключим редактирование
+    draw: {
+        polygon: false,
+        rectangle: true, // Оставим только прямоугольник
+        circle: false,
+        marker: false,
+        circlemarker: false,
+        polyline: false
+    }
+});
+map.addControl(drawControl);
+
+// --- ГЛАВНОЕ СОБЫТИЕ: ОТПРАВКА ЗАПРОСА ПОСЛЕ РИСОВАНИЯ ---
+map.on(L.Draw.Event.CREATED, function (e) {
+    const layer = e.layer;
+    const bounds = layer.getBounds();
+    
+    // Очищаем предыдущие фигуры и снимки
+    drawnItems.clearLayers();
+    if (imageOverlay) {
+        map.removeLayer(imageOverlay);
+    }
+    
+    // Добавляем нарисованную рамку на карту
+    drawnItems.addLayer(layer);
+
+    // Показываем сообщение о загрузке
+    const popup = L.popup()
+        .setLatLng(bounds.getCenter())
+        .setContent('🛰️ Запрашиваю снимок...')
+        .openOn(map);
+
+    // 1. Готовим данные для отправки
+    const bbox = [bounds.getSouthWest().lng, bounds.getSouthWest().lat, bounds.getNorthEast().lng, bounds.getNorthEast().lat];
+    const selectedLayer = document.querySelector('input[name="layer_select"]:checked').value;
+    const backendUrl = 'http://127.0.0.1:8000/get-image';
+
+    // 2. Отправляем запрос (fetch) на бэкенд
+    fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bbox: bbox ,layer_type:selectedLayer}) // Упаковываем наши координаты в JSON
+    })
+    .then(response => {
+        // Проверяем, что сервер ответил успешно (код 200)
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
+        }
+        // Сервер возвращает изображение, поэтому мы читаем его как "blob"
+        return response.blob();
+    })
+    .then(imageBlob => {
+        // 3. Отображаем полученный снимок на карте
+        const imageUrl = URL.createObjectURL(imageBlob);
+        
+        imageOverlay = L.imageOverlay(imageUrl, bounds).addTo(map);
+        
+        // Убираем сообщение о загрузке
+        map.closePopup(popup);
+    })
+    .catch(error => {
+        // В случае ошибки выводим её в попапе и в консоль
+        console.error('Ошибка при получении снимка:', error);
+        popup.setContent(`❌ Ошибка: ${error.message}`);
+    });
+});
+
+    </script>
+
+</body>
+</html>
