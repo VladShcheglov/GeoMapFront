@@ -1,6 +1,6 @@
 import numpy as np
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse,FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List,Literal
@@ -138,6 +138,8 @@ async def get_image(request: BboxRequest):
         
         image_data = sentinel_request.get_data()[0]
         image = Image.fromarray(image_data)
+        #сохраняем на диск
+        image.save('last_image.png')
         # image.show() # Можно временно раскомментировать для отладки
         
         buffer = io.BytesIO()
@@ -149,3 +151,8 @@ async def get_image(request: BboxRequest):
     except Exception as e:
         print(f"Произошла ошибка: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/download-image")
+async def download_image():
+    file_path = "last_image.png"
+    return FileResponse(path=file_path,filename="sentinel_snapshot.png",media_type='image/png')

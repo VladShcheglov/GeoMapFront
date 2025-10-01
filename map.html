@@ -21,6 +21,20 @@
             border-radius: 5px;
             z-index: 1000; /* Чтобы было поверх карты */
             font-family: sans-serif;
+        
+}
+        #downloadLink{
+            display: block;
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 3px;
+}
+        .button-hidden{
+            display: none !important;
 }
     </style>
 </head>
@@ -57,6 +71,7 @@ map.addLayer(drawnItems);
 
 // Слой для отображения полученного снимка
 let imageOverlay = null;
+const downloadLink = document.getElementById('downloadLink');
 
 // --- ИНСТРУМЕНТЫ РИСОВАНИЯ ---
 const drawControl = new L.Control.Draw({
@@ -96,6 +111,7 @@ map.on(L.Draw.Event.CREATED, function (e) {
     const bbox = [bounds.getSouthWest().lng, bounds.getSouthWest().lat, bounds.getNorthEast().lng, bounds.getNorthEast().lat];
     const selectedLayer = document.querySelector('input[name="layer_select"]:checked').value;
     const backendUrl = 'http://127.0.0.1:8000/get-image';
+    downloadLink.classList.add('button-hidden');
 
     // 2. Отправляем запрос (fetch) на бэкенд
     fetch(backendUrl, {
@@ -121,11 +137,15 @@ map.on(L.Draw.Event.CREATED, function (e) {
         
         // Убираем сообщение о загрузке
         map.closePopup(popup);
+        //Делаем кнопку видимой и активной 
+        downloadLink.href = 'http://127.0.0.1:8000/download-image';
+        downloadLink.classList.remove('button-hidden')
     })
     .catch(error => {
         // В случае ошибки выводим её в попапе и в консоль
         console.error('Ошибка при получении снимка:', error);
         popup.setContent(`❌ Ошибка: ${error.message}`);
+        downloadLink.classList.add('button-hidden')
     });
 });
 
