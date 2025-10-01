@@ -46,8 +46,8 @@ app.add_middleware(
 # --- КОНФИГУРАЦИЯ ---
 # ❗️ ВАЖНО: Замените эти строки на ваши реальные Client ID и Client Secret
 # В реальном проекте их лучше хранить в переменных окружения, а не в коде.
-SH_CLIENT_ID = os.getenv('ClientID')
-SH_CLIENT_SECRET = os.getenv('ClientSecret')
+SH_CLIENT_ID = os.getenv("ClientID")
+SH_CLIENT_SECRET = os.getenv("ClientSecret")
 
 if not SH_CLIENT_ID or not SH_CLIENT_SECRET:
     raise ValueError("Пожалуйста, укажите SH_CLIENT_ID и SH_CLIENT_SECRET.")
